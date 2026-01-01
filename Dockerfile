@@ -41,6 +41,10 @@ RUN \
     && chmod 755 /app/taptap-mqtt/taptap-mqtt.py \
     && rm -rf /tmp/*
 
+# Download example config for first-run initialization
+RUN curl -sSLf -o /app/config.ini.example \
+    "https://raw.githubusercontent.com/litinoveweedle/taptap-mqtt/v${TAPTAP_MQTT_VERSION}/config.ini.example"
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
