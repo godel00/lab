@@ -184,7 +184,7 @@ The TapTap and TapTap‑MQTT projects belong to their respective authors.
 ## 🙌 Contributing
 
 This repo is experimental, but PRs and suggestions are welcome.  
-The final production container will live in the `taptap-mqtt` repository.
+The final production container will live in the `taptap-mqtt` repository. :)
 
 ```
 
