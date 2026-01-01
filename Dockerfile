@@ -1,25 +1,23 @@
-# Base image
 FROM python:3.12-alpine
 
-# Build arguments (passed from GHCR workflow)
 ARG TAPTAP_VERSION
 ARG TAPTAP_MQTT_VERSION
 ARG TARGETARCH
 
-# Install dependencies
 RUN apk add --no-cache curl tar
 
-# Create application directories
 RUN mkdir -p /app/taptap /app/taptap-mqtt /app/config /app/data
 
 ###############################################################################
-# Install TapTap binary
+# Install TapTap binary (multi-arch)
 ###############################################################################
 RUN \
     if [ "$TARGETARCH" = "amd64" ]; then \
         TAPTAP_ARCH="musl-x86_64"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
         TAPTAP_ARCH="musl-arm64"; \
+    elif [ "$TARGETARCH" = "arm" ]; then \
+        TAPTAP_ARCH="musleabihf-armv7"; \
     else \
         echo "Unsupported architecture: $TARGETARCH"; \
         exit 1; \
@@ -32,7 +30,7 @@ RUN \
     && rm -rf /tmp/*
 
 ###############################################################################
-# Install TapTap-MQTT bridge
+# Install TapTap-MQTT
 ###############################################################################
 RUN \
     curl -sSLf -o /tmp/taptap-mqtt.tgz \
@@ -43,12 +41,8 @@ RUN \
     && chmod 755 /app/taptap-mqtt/taptap-mqtt.py \
     && rm -rf /tmp/*
 
-###############################################################################
-# Copy entrypoint
-###############################################################################
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 WORKDIR /app
-
 ENTRYPOINT ["/entrypoint.sh"]
