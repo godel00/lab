@@ -18,29 +18,28 @@ RUN set -eux; \
     # Auto-detect version if not provided
     if [ -z "$TAPTAP_VERSION" ]; then \
         echo "Auto-detecting latest TapTap version..."; \
-        TAPTAP_VERSION=$(curl -sSL https://api.github.com/repos/litinoveweedle/taptap/releases/latest \
-            | grep -oP '"tag_name": "\K(.*)(?=")' \
-            || true); \
+        TAPTAP_VERSION=$( \
+            curl -sSL https://api.github.com/repos/litinoveweedle/taptap/releases/latest \
+            | grep -oE '"tag_name":\s*"v?([0-9]+\.[0-9]+\.[0-9]+)"' \
+            | sed -E 's/.*"v?([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' \
+            || true \
+        ); \
         echo "Detected version: ${TAPTAP_VERSION:-none}"; \
     fi; \
     \
-    # If detection failed, fallback immediately
+    # Fallback if detection failed
     if [ -z "$TAPTAP_VERSION" ]; then \
         echo "Failed to auto-detect version — falling back to 0.2.6"; \
         TAPTAP_VERSION="0.2.6"; \
     fi; \
     \
     # Determine architecture
-    if [ "$TARGETARCH" = "amd64" ]; then \
-        TAPTAP_ARCH="musl-x86_64"; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
-        TAPTAP_ARCH="musl-arm64"; \
-    elif [ "$TARGETARCH" = "arm" ]; then \
-        TAPTAP_ARCH="musleabihf-armv7"; \
-    else \
-        echo "Unsupported architecture: $TARGETARCH"; \
-        exit 1; \
-    fi; \
+    case "$TARGETARCH" in \
+        amd64) TAPTAP_ARCH="musl-x86_64" ;; \
+        arm64) TAPTAP_ARCH="musl-arm64" ;; \
+        arm)   TAPTAP_ARCH="musleabihf-armv7" ;; \
+        *) echo "Unsupported architecture: $TARGETARCH"; exit 1 ;; \
+    esac; \
     \
     # Construct download URL
     TAPTAP_URL="https://github.com/litinoveweedle/taptap/releases/download/v${TAPTAP_VERSION}/taptap-Linux-${TAPTAP_ARCH}.tar.gz"; \
@@ -55,9 +54,8 @@ RUN set -eux; \
     \
     echo "Downloading TapTap from: $TAPTAP_URL"; \
     curl -sSLf -o /tmp/taptap.tgz "$TAPTAP_URL"; \
-    tar -xzvf /tmp/taptap.tgz -C /tmp; \
-    cp /tmp/taptap /app/taptap/; \
-    chmod 755 /app/taptap/taptap; \
+    tar -xzf /tmp/taptap.tgz -C /tmp; \
+    install -m 755 /tmp/taptap /app/taptap/taptap; \
     rm -rf /tmp/*
 
 ###############################################################################
@@ -70,19 +68,22 @@ RUN set -eux; \
     # Auto-detect version if not provided
     if [ -z "$TAPTAP_MQTT_VERSION" ]; then \
         echo "Auto-detecting latest TapTap-MQTT version..."; \
-        TAPTAP_MQTT_VERSION=$(curl -sSL https://api.github.com/repos/litinoveweedle/taptap-mqtt/releases/latest \
-            | grep -oP '"tag_name": "\K(.*)(?=")' \
-            || true); \
+        TAPTAP_MQTT_VERSION=$( \
+            curl -sSL https://api.github.com/repos/litinoveweedle/taptap-mqtt/releases/latest \
+            | grep -oE '"tag_name":\s*"v?([0-9]+\.[0-9]+\.[0-9]+)"' \
+            | sed -E 's/.*"v?([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' \
+            || true \
+        ); \
         echo "Detected TapTap-MQTT version: ${TAPTAP_MQTT_VERSION:-none}"; \
     fi; \
     \
-    # If detection failed, fallback immediately
+    # Fallback if detection failed
     if [ -z "$TAPTAP_MQTT_VERSION" ]; then \
         echo "Failed to auto-detect TapTap-MQTT version — falling back to 0.2.1"; \
         TAPTAP_MQTT_VERSION="0.2.1"; \
     fi; \
     \
-    # Construct download URL (source tarball)
+    # Construct download URL
     TAPTAP_MQTT_URL="https://github.com/litinoveweedle/taptap-mqtt/archive/refs/tags/v${TAPTAP_MQTT_VERSION}.tar.gz"; \
     echo "Checking URL: $TAPTAP_MQTT_URL"; \
     \
@@ -95,17 +96,16 @@ RUN set -eux; \
     \
     echo "Downloading TapTap-MQTT from: $TAPTAP_MQTT_URL"; \
     curl -sSLf -o /tmp/taptap-mqtt.tgz "$TAPTAP_MQTT_URL"; \
-    tar -xzvf /tmp/taptap-mqtt.tgz -C /tmp; \
+    tar -xzf /tmp/taptap-mqtt.tgz -C /tmp; \
     \
     # Copy Python script
-    cp /tmp/taptap-mqtt-*/taptap-mqtt.py /app/taptap-mqtt/; \
-    chmod 755 /app/taptap-mqtt/taptap-mqtt.py; \
+    install -m 755 /tmp/taptap-mqtt-*/taptap-mqtt.py /app/taptap-mqtt/taptap-mqtt.py; \
     \
-    # Copy example config from the extracted tarball
+    # Copy example config
     cp /tmp/taptap-mqtt-*/config.ini.example /app/config.ini.example; \
     \
     # Install Python dependencies
-    pip install -r /tmp/taptap-mqtt-*/requirements.txt; \
+    pip install --no-cache-dir -r /tmp/taptap-mqtt-*/requirements.txt; \
     \
     # Cleanup
     rm -rf /tmp/*
