@@ -2,27 +2,12 @@
 set -e
 
 ###############################################################################
-# Color Handling (TTY-safe)
-###############################################################################
-if [ -t 1 ]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    NC='\033[0m'
-else
-    RED=''
-    GREEN=''
-    YELLOW=''
-    NC=''
-fi
-
-###############################################################################
-# Helper Functions
+# Helper Functions (plain text)
 ###############################################################################
 info()  { printf "%s\n" "$1"; }
-ok()    { printf "${GREEN}✓${NC} %s\n" "$1"; }
-warn()  { printf "${YELLOW}!${NC} %s\n" "$1"; }
-error() { printf "${RED}✗${NC} %s\n" "$1"; }
+ok()    { printf "OK: %s\n" "$1"; }
+warn()  { printf "WARN: %s\n" "$1"; }
+error() { printf "ERROR: %s\n" "$1"; }
 
 ###############################################################################
 # Paths
@@ -30,7 +15,7 @@ error() { printf "${RED}✗${NC} %s\n" "$1"; }
 CONFIG_DIR="/app/config"
 DATA_DIR="/app/data"
 CONFIG_FILE="${CONFIG_DIR}/config.ini"
-CONFIG_EXAMPLE="/app/config.ini.example"
+CONFIG_EXAMPLE="${CONFIG_DIR}/config.ini.example"
 INIT_FLAG="${CONFIG_DIR}/.docker_initialized"
 STATE_FILE="${DATA_DIR}/taptap.json"
 TAPTAP_BIN="/app/taptap/taptap"
@@ -71,11 +56,28 @@ if [ ! -f "$INIT_FLAG" ]; then
     chmod 755 "$CONFIG_DIR" "$DATA_DIR"
     ok "Created config and data directories"
 
-    # Copy example config for user reference
-    if [ -f "$CONFIG_EXAMPLE" ] && [ ! -f "${CONFIG_DIR}/config.ini.example" ]; then
-        cp "$CONFIG_EXAMPLE" "${CONFIG_DIR}/config.ini.example"
-        chmod 644 "${CONFIG_DIR}/config.ini.example"
-        ok "Copied config.ini.example to ${CONFIG_DIR}/config.ini.example"
+    # Move example config into the config directory
+    if [ -f "/app/config.ini.example" ] && [ ! -f "$CONFIG_EXAMPLE" ]; then
+        cp "/app/config.ini.example" "$CONFIG_EXAMPLE"
+        chmod 644 "$CONFIG_EXAMPLE"
+        ok "Placed config.ini.example into $CONFIG_EXAMPLE"
+    fi
+
+    # Create config.ini from example
+    if [ ! -f "$CONFIG_FILE" ]; then
+        cp "$CONFIG_EXAMPLE" "$CONFIG_FILE"
+        chmod 644 "$CONFIG_FILE"
+        ok "Created new config.ini at $CONFIG_FILE"
+
+        # FIRST-RUN ONLY: Replace BINARY and STATE_FILE regardless of value
+        sed -i "s|^BINARY *=.*|BINARY = ${TAPTAP_BIN}|g" "$CONFIG_FILE"
+        ok "Set BINARY path to ${TAPTAP_BIN}"
+
+        sed -i "s|^STATE_FILE *=.*|STATE_FILE = ${STATE_FILE}|g" "$CONFIG_FILE"
+        ok "Set STATE_FILE path to ${STATE_FILE}"
+
+        warn "Please edit your configuration file:"
+        info "  $CONFIG_FILE"
     fi
 
     touch "$INIT_FLAG"
@@ -84,55 +86,10 @@ else
 fi
 
 ###############################################################################
-# Ensure config.ini Exists
+# Symlink config.ini into working directory for TapTap-MQTT auto-detection
 ###############################################################################
-if [ -f "$CONFIG_FILE" ]; then
-    ok "Using existing configuration: $CONFIG_FILE"
-else
-    warn "config.ini not found — creating from example"
-
-    if [ -f "$CONFIG_EXAMPLE" ]; then
-        cp "$CONFIG_EXAMPLE" "$CONFIG_FILE"
-        chmod 644 "$CONFIG_FILE"
-        ok "Created new config.ini at $CONFIG_FILE"
-
-        warn "Please edit your configuration file:"
-        info "  $CONFIG_FILE"
-    else
-        error "Missing config.ini.example — cannot create default config"
-        exit 1
-    fi
-fi
-
-###############################################################################
-# Update Paths Inside config.ini
-###############################################################################
-if grep -q "BINARY = ./taptap" "$CONFIG_FILE"; then
-    sed -i "s|BINARY = ./taptap|BINARY = ${TAPTAP_BIN}|g" "$CONFIG_FILE"
-    ok "Updated BINARY path in config.ini"
-fi
-
-if grep -q "STATE_FILE = ./taptap.json" "$CONFIG_FILE"; then
-    sed -i "s|STATE_FILE = ./taptap.json|STATE_FILE = ${STATE_FILE}|g" "$CONFIG_FILE"
-    ok "Updated STATE_FILE path in config.ini"
-fi
-
-###############################################################################
-# Environment Variable Overrides (Optional)
-###############################################################################
-apply_env_override() {
-    KEY="$1"
-    VALUE="$2"
-    if [ -n "$VALUE" ]; then
-        sed -i "s|^${KEY} = .*|${KEY} = ${VALUE}|g" "$CONFIG_FILE"
-        ok "Applied env override: ${KEY}=${VALUE}"
-    fi
-}
-
-apply_env_override "SERVER" "$MQTT_SERVER"
-apply_env_override "PORT" "$MQTT_PORT"
-apply_env_override "USER" "$MQTT_USER"
-apply_env_override "PASS" "$MQTT_PASS"
+ln -sf "$CONFIG_FILE" /app/config.ini
+ok "Linked config.ini into /app/config.ini for TapTap-MQTT auto-detection"
 
 ###############################################################################
 # Startup Summary
@@ -152,6 +109,6 @@ info ""
 trap "info 'Stopping TapTap MQTT...'; exit 0" SIGTERM SIGINT
 
 ###############################################################################
-# Start Application
+# Start Application (no --config)
 ###############################################################################
-exec python3 "$MQTT_SCRIPT" --config "$CONFIG_FILE"
+exec python3 "$MQTT_SCRIPT"

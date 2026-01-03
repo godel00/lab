@@ -55,8 +55,13 @@ RUN set -eux; \
     \
     echo "Downloading TapTap from: $TAPTAP_URL"; \
     curl -sSLf -o taptap.tgz "$TAPTAP_URL"; \
-    tar -xzf taptap.tgz; \
-    install -m 755 taptap /build/taptap
+    \
+    # Extract into a temp dir to avoid macOS BuildKit path collision
+    mkdir -p /tmp/taptap-extract; \
+    tar -xzf taptap.tgz -C /tmp/taptap-extract; \
+    \
+    # Install binary
+    install -m 755 /tmp/taptap-extract/taptap /build/taptap
 
 ###############################################################################
 # Install TapTap-MQTT Python script with auto-detected version + fallback
@@ -94,15 +99,17 @@ RUN set -eux; \
     \
     echo "Downloading TapTap-MQTT from: $TAPTAP_MQTT_URL"; \
     curl -sSLf -o taptap-mqtt.tgz "$TAPTAP_MQTT_URL"; \
-    tar -xzf taptap-mqtt.tgz; \
+    \
+    mkdir -p /tmp/taptap-mqtt-extract; \
+    tar -xzf taptap-mqtt.tgz -C /tmp/taptap-mqtt-extract; \
     \
     # Copy Python script + example config
-    install -m 755 taptap-mqtt-*/taptap-mqtt.py /build/taptap-mqtt.py; \
-    cp taptap-mqtt-*/config.ini.example /build/config.ini.example; \
+    install -m 755 /tmp/taptap-mqtt-extract/*/taptap-mqtt.py /build/taptap-mqtt.py; \
+    cp /tmp/taptap-mqtt-extract/*/config.ini.example /build/config.ini.example; \
     \
     # Install Python dependencies into a venv
     python -m venv /build/venv; \
-    /build/venv/bin/pip install --no-cache-dir -r taptap-mqtt-*/requirements.txt
+    /build/venv/bin/pip install --no-cache-dir -r /tmp/taptap-mqtt-extract/*/requirements.txt
 
 # ============================
 # Stage 2 — Runtime
