@@ -1,18 +1,19 @@
-FROM python:3.12-alpine
+# ============================
+# Stage 1 — Builder
+# ============================
+FROM python:3.12-alpine AS builder
 
-ARG TAPTAP_VERSION
-ARG TAPTAP_MQTT_VERSION
+ARG TAPTAP_VERSION=""
+ARG TAPTAP_MQTT_VERSION=""
 ARG TARGETARCH
 
-RUN apk add --no-cache curl tar
+RUN apk add --no-cache curl tar git
 
-RUN mkdir -p /app/taptap /app/taptap-mqtt /app/config /app/data
+WORKDIR /build
 
 ###############################################################################
 # Install TapTap binary with auto-detected version + architecture fallback
 ###############################################################################
-ARG TAPTAP_VERSION=""
-
 RUN set -eux; \
     \
     # Auto-detect version if not provided
@@ -53,16 +54,13 @@ RUN set -eux; \
     fi; \
     \
     echo "Downloading TapTap from: $TAPTAP_URL"; \
-    curl -sSLf -o /tmp/taptap.tgz "$TAPTAP_URL"; \
-    tar -xzf /tmp/taptap.tgz -C /tmp; \
-    install -m 755 /tmp/taptap /app/taptap/taptap; \
-    rm -rf /tmp/*
+    curl -sSLf -o taptap.tgz "$TAPTAP_URL"; \
+    tar -xzf taptap.tgz; \
+    install -m 755 taptap /build/taptap
 
 ###############################################################################
 # Install TapTap-MQTT Python script with auto-detected version + fallback
 ###############################################################################
-ARG TAPTAP_MQTT_VERSION=""
-
 RUN set -eux; \
     \
     # Auto-detect version if not provided
@@ -95,23 +93,42 @@ RUN set -eux; \
     fi; \
     \
     echo "Downloading TapTap-MQTT from: $TAPTAP_MQTT_URL"; \
-    curl -sSLf -o /tmp/taptap-mqtt.tgz "$TAPTAP_MQTT_URL"; \
-    tar -xzf /tmp/taptap-mqtt.tgz -C /tmp; \
+    curl -sSLf -o taptap-mqtt.tgz "$TAPTAP_MQTT_URL"; \
+    tar -xzf taptap-mqtt.tgz; \
     \
-    # Copy Python script
-    install -m 755 /tmp/taptap-mqtt-*/taptap-mqtt.py /app/taptap-mqtt/taptap-mqtt.py; \
+    # Copy Python script + example config
+    install -m 755 taptap-mqtt-*/taptap-mqtt.py /build/taptap-mqtt.py; \
+    cp taptap-mqtt-*/config.ini.example /build/config.ini.example; \
     \
-    # Copy example config
-    cp /tmp/taptap-mqtt-*/config.ini.example /app/config.ini.example; \
-    \
-    # Install Python dependencies
-    pip install --no-cache-dir -r /tmp/taptap-mqtt-*/requirements.txt; \
-    \
-    # Cleanup
-    rm -rf /tmp/*
+    # Install Python dependencies into a venv
+    python -m venv /build/venv; \
+    /build/venv/bin/pip install --no-cache-dir -r taptap-mqtt-*/requirements.txt
 
+# ============================
+# Stage 2 — Runtime
+# ============================
+FROM python:3.12-alpine
+
+RUN apk add --no-cache bash
+
+WORKDIR /app
+
+# Copy TapTap binary
+COPY --from=builder /build/taptap /app/taptap/taptap
+
+# Copy TapTap-MQTT script
+COPY --from=builder /build/taptap-mqtt.py /app/taptap-mqtt/taptap-mqtt.py
+
+# Copy example config
+COPY --from=builder /build/config.ini.example /app/config.ini.example
+
+# Copy Python venv
+COPY --from=builder /build/venv /app/venv
+
+# Entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-WORKDIR /app
+ENV PATH="/app/venv/bin:${PATH}"
+
 ENTRYPOINT ["/entrypoint.sh"]
