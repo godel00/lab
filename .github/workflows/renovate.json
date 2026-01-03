@@ -8,7 +8,8 @@
         "# renovate: datasource=github-releases depName=(?<packageName>.*) packageName=(?<repo>.*) versioning=semver[\\s\\S]*?TAPTAP_MQTT_VERSION: \"(?<currentValue>.*)\""
       ],
       "datasourceTemplate": "github-releases",
-      "depNameTemplate": "{{repo}}"
+      "depNameTemplate": "{{packageName}}",
+      "packageNameTemplate": "{{repo}}"
     }
   ]
 }
