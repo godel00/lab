@@ -1,191 +1,272 @@
-# TapTap‑MQTT Docker Image (Testing Repository)
+---
 
-This repository contains a Dockerized build of the **TapTap MQTT bridge**, which connects the TapTap RS485 controller to an MQTT broker.  
-This repo is used for testing multi‑arch builds, GHCR publishing, and container runtime behavior before moving the final version into the main `taptap-mqtt` project.
+# 📘 TapTap‑MQTT (Docker)
+
+### ❤️ Credits
+
+**Copyright belongs to the original TapTap and TapTap‑MQTT developers.  
+This repository only provides a Docker implementation of their work.**
+
+This project is based on the work by **Li Tin O’ve Weedle**, the creator of TapTap‑MQTT:
+
+👉 https://github.com/litinoveweedle/taptap-mqtt
+
+If you’re running **Home Assistant OS (Hass.io)** or **Home Assistant Supervised**, you should use the official add‑on instead of this Docker image:
+
+👉 https://github.com/litinoveweedle/hassio-addons/tree/main/taptap
+
+### ⚠️ Not affiliated with upstream
+
+**This repository is an independent Docker packaging of the upstream TapTap‑MQTT project and is not officially associated with or endorsed by the original maintainers.**  
+It simply provides a clean, Docker‑first distribution for people running:
+
+- Home Assistant **Core in Docker**
+- Standalone Docker setups
+- Unraid, Proxmox, Raspberry Pi, etc.
+
+Huge thanks to the upstream authors — none of this would exist without their work.
 
 ---
 
-## 🚀 Features
+# 🧰 Installation Prerequisites (Summary)
 
-- Multi‑architecture Docker image (amd64 + arm64)
-- Automatic builds and publishing to GitHub Container Registry (GHCR)
-- Persistent configuration and state storage
-- First‑run initialization with automatic config generation
-- Clean, robust entrypoint script
-- Compatible with Linux, macOS, Windows, and Unraid
+Before running this container, you need:
 
----
+### **1. MQTT Broker**
+Any MQTT broker works (Mosquitto, EMQX, HiveMQ, etc.).
 
-## 📦 Pulling the Image (GHCR)
+### **2. Home Assistant MQTT Integration**
+Required for automatic sensor discovery.
 
-Once the workflow builds successfully, you can pull the image with:
+### **3. Modbus RS485 → Serial/Ethernet Converter**
+Examples: Waveshare RS485‑to‑Ethernet modules.
 
-```bash
-docker pull ghcr.io/godel00/lab:latest
-```
+### **4. Correct Wiring**
+The converter must be wired **in parallel** with the existing TAP wiring on the Tigo CCA “Gateway” RS485 port:
 
-If the repo is private, authenticate first:
+- A → A  
+- B → B  
+- Ground (⏚ / -) → Ground  
 
-```bash
-echo $GITHUB_TOKEN | docker login ghcr.io -u godel00 --password-stdin
-```
+Keep wires short and mount the converter close to the CCA.
 
----
+### **5. Converter Configuration**
+Typical settings:
 
-## 🗂 Directory Structure
+- Baud rate: **38400**
+- Data bits: **8**
+- Stop bits: **1**
+- Flow control: **None**
+- Mode: **Modbus TCP Server**
+- Protocol: **None**  
+  *(Waveshare: Web UI → Multi‑Host Settings → Protocol → None)*
 
-The container expects two persistent directories:
-
-```
-/app/config   → configuration files (config.ini)
-/app/data     → runtime state (taptap.json)
-```
-
-On your host machine, you can store them anywhere.  
-Recommended cross‑platform layout:
-
-```
-~/taptap-mqtt/config
-~/taptap-mqtt/data
-```
+### **6. Network Setup**
+- Assign a reachable IP address (DHCP reservation recommended)
+- Note the TCP port (usually 502)
 
 ---
 
-## 🐳 Running the Container
+# 📝 Configure TapTap‑MQTT
 
-### **Linux / macOS**
+After the first container start, edit your config file:
 
-```bash
+```
+~/taptap-mqtt/config/config.ini
+```
+
+Or on Unraid:
+
+```
+/mnt/user/appdata/taptap-mqtt/config/config.ini
+```
+
+Fill in:
+
+- MQTT hostname, username, password  
+- Modbus converter IP and port  
+- Home Assistant discovery settings as needed 
+- Optional behavior flags  
+
+The file includes inline comments explaining each option.
+
+Save the config and restart the container.
+
+### **Recommended: Enable Debug Logging on First Run**
+
+Set:
+
+```
+LOG_LEVEL = debug
+```
+
+This will show:
+
+- raw TAP messages  
+- Modbus connection attempts  
+- module discovery  
+- MQTT publishing  
+
+Once confirmed working, change to:
+
+```
+LOG_LEVEL = info
+```
+
+or
+
+```
+LOG_LEVEL = warning
+```
+
+---
+
+# 🚀 Quick Start (Docker Run)
+
+Create persistent folders:
+
+```sh
 mkdir -p ~/taptap-mqtt/config
 mkdir -p ~/taptap-mqtt/data
+```
 
-docker run -d \
-  --name taptap-mqtt \
+Run the container:
+
+```sh
+docker run -d --name taptap-mqtt \
+  --cap-add=SYS_RESOURCE \
   -v ~/taptap-mqtt/config:/app/config \
   -v ~/taptap-mqtt/data:/app/data \
-  ghcr.io/godel00/lab:latest
-```
-
-### **Windows (PowerShell)**
-
-```powershell
-mkdir $HOME\taptap-mqtt\config
-mkdir $HOME\taptap-mqtt\data
-
-docker run `
-  --name taptap-mqtt `
-  -v $HOME\taptap-mqtt\config:/app/config `
-  -v $HOME\taptap-mqtt\data:/app/data `
-  ghcr.io/godel00/lab:latest
-```
-
-### **Unraid**
-
-Map these paths in the template:
-
-```
-/mnt/user/appdata/taptap-mqtt/config → /app/config
-/mnt/user/appdata/taptap-mqtt/data   → /app/data
+  --restart unless-stopped \
+  ghcr.io/godel00/taptap-mqtt-docker:latest
 ```
 
 ---
 
-## 📝 Configuration
+# 🧩 Using docker‑compose
 
-On first run, the container will:
+A `docker-compose.yml` file is included in this repository.
 
-- Create `/app/config/config.ini` if missing  
-- Copy `config.ini.example` for reference  
-- Update paths inside the config automatically  
-- Initialize `/app/data/taptap.json`  
+Start:
 
-You must edit `config.ini` to set:
+```sh
+docker compose up -d
+```
 
-- MQTT server, port, username, password  
-- TapTap serial port or TCP address  
-- TapTap modules  
+Stop:
 
----
+```sh
+docker compose down
+```
 
-## ⚙️ Environment Variable Overrides (Optional)
+Update:
 
-You can override config.ini values using environment variables:
-
-| Variable      | Description |
-|---------------|-------------|
-| `MQTT_SERVER` | MQTT broker hostname/IP |
-| `MQTT_PORT`   | MQTT port |
-| `MQTT_USER`   | Username |
-| `MQTT_PASS`   | Password |
-
-Example:
-
-```bash
-docker run -d \
-  -e MQTT_SERVER=192.168.1.10 \
-  -e MQTT_PORT=1883 \
-  -e MQTT_USER=admin \
-  -e MQTT_PASS=secret \
-  -v ~/taptap-mqtt/config:/app/config \
-  -v ~/taptap-mqtt/data:/app/data \
-  ghcr.io/godel00/lab:latest
+```sh
+docker compose pull
+docker compose up -d
 ```
 
 ---
 
-## 🛠 Development
+# 🟧 Running on Unraid (GUI Method)
 
-### Build locally:
+Unraid **does not automatically create folders** for volume mappings.  
+Create them manually:
 
-```bash
-docker build -t taptap-mqtt .
+```sh
+mkdir -p /mnt/user/appdata/taptap-mqtt/config
+mkdir -p /mnt/user/appdata/taptap-mqtt/data
 ```
 
-### Run locally:
+Then in **Docker → Add Container**:
 
-```bash
-docker run -it --rm \
-  -v $(pwd)/config:/app/config \
-  -v $(pwd)/data:/app/data \
-  taptap-mqtt
+- **Name:** `taptap-mqtt`
+- **Repository:** `ghcr.io/godel00/taptap-mqtt-docker:latest`
+- **Path:** `/app/config` → `/mnt/user/appdata/taptap-mqtt/config`
+- **Path:** `/app/data` → `/mnt/user/appdata/taptap-mqtt/data`
+- **Capability:** `SYS_RESOURCE`
+- **Restart policy:** `Unless stopped`
+
+Click **Apply**.
+
+---
+
+# 🟧 Running on Unraid (Template XML Method)
+
+Save the provided XML as:
+
+```
+/boot/config/plugins/dockerMan/templates-user/my-taptap-mqtt.xml
+```
+
+Then in Unraid:
+
+**Docker → Add Container → Template dropdown → my-taptap-mqtt**
+
+Click **Apply**.
+
+---
+
+# 📁 Folder Structure
+
+### Host (persistent)
+
+```
+~/taptap-mqtt/
+├── config/
+│   ├── config.ini
+│   └── config.ini.example
+└── data/
+    └── taptap.json
+```
+
+### Inside the container
+
+```
+/app
+├── config/config.ini
+├── config/config.ini.example
+├── data/taptap.json
+├── taptap/taptap
+└── taptap-mqtt/taptap-mqtt.py
 ```
 
 ---
 
-## 🔄 GitHub Actions (GHCR Build)
+# 🔍 How Config Discovery Works
 
-This repo includes:
+TapTap‑MQTT expects `config.ini` in `/app`.
+
+To support host‑mounted config, the container creates:
 
 ```
-.github/workflows/ghcr-build.yml
-```
-
-It automatically:
-
-- Builds multi‑arch images  
-- Tags them (`latest`, `main`, `sha`, semver)  
-- Pushes to GHCR  
-
-Triggered on:
-
-- Push to `main`
-- Push of tags like `v1.0.0`
-- Pull requests (build only)
-
----
-
-## 📚 License
-
-This repository is for testing and development purposes.  
-The TapTap and TapTap‑MQTT projects belong to their respective authors.
-
----
-
-## 🙌 Contributing
-
-This repo is experimental, but PRs and suggestions are welcome.  
-The final production container will live in the `taptap-mqtt` repository. :)
-
+/app/config.ini → /app/config/config.ini
 ```
 
 ---
+
+# 🏠 Viewing Tigo Module Data in Home Assistant
+
+Once the container is running correctly and your MQTT settings are valid, Home Assistant will automatically discover new MQTT entities for your Tigo modules.
+
+You should see:
+
+- Individual optimizer sensors  
+- Module voltage and current  
+- Module temperature  
+- Module power  
+- TAP/CCA status sensors  
+- Availability sensors  
+
+These appear under:
+
+**Home Assistant → Settings → Devices & Services → MQTT → Devices**
+
+Each optimizer will show up as its own device with multiple sensors.
+
+If nothing appears:
+
+- Check your MQTT credentials  
+- Verify the Modbus converter IP/port  
+- Ensure the converter protocol is set to **None**  
+- Temporarily set `LOG_LEVEL = debug` to inspect messages  

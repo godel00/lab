@@ -3,6 +3,12 @@
 # ============================
 FROM python:3.12-alpine AS builder
 
+LABEL org.opencontainers.image.title="TapTap-MQTT"
+LABEL org.opencontainers.image.description="Docker implementation of Tigo CCA Tap to MQTT bridge to get data from Tigo optimizers locally to Home Assistant."
+LABEL org.opencontainers.image.source="https://github.com/godel00/lab"
+LABEL org.opencontainers.image.url="https://github.com/godel00/lab"
+LABEL org.opencontainers.image.licenses="MIT"
+
 ARG TAPTAP_VERSION=""
 ARG TAPTAP_MQTT_VERSION=""
 ARG TARGETARCH
