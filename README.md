@@ -91,6 +91,13 @@ The file includes inline comments explaining each option.
 
 Save the config and restart the container.
 
+### 📄 Example Configuration
+
+TapTap‑MQTT’s example configuration file is maintained upstream.  
+You can view the latest version here:
+
+https://raw.githubusercontent.com/litinoveweedle/taptap-mqtt/main/config.ini.example
+
 ### **Recommended: Enable Debug Logging on First Run**
 
 Set:
