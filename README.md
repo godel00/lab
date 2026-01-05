@@ -1,23 +1,24 @@
 ---
 
-# 📘 TapTap‑MQTT (Docker)
+# TapTap‑MQTT (Docker)
 
-### ❤️ Credits
 
-**Copyright belongs to the original TapTap and TapTap‑MQTT developers.  
-This repository only provides a Docker implementation of their work.**
+### Credits
 
-This project is based on the work by **Li Tin O’ve Weedle**, the creator of TapTap‑MQTT:
+Copyright belongs to the original TapTap and TapTap‑MQTT developers.  
+This repository only provides a Docker implementation of their work.
 
-👉 https://github.com/litinoveweedle/taptap-mqtt
+This project is based on the work by Li Tin O’ve Weedle, the creator of TapTap‑MQTT:
+
+https://github.com/litinoveweedle/taptap-mqtt
 
 If you’re running **Home Assistant OS (Hass.io)** or **Home Assistant Supervised**, you should use the official add‑on instead of this Docker image:
 
-👉 https://github.com/litinoveweedle/hassio-addons/tree/main/taptap
+https://github.com/litinoveweedle/hassio-addons/tree/main/taptap
 
-### ⚠️ Not affiliated with upstream
+### Not affiliated with upstream
 
-**This repository is an independent Docker packaging of the upstream TapTap‑MQTT project and is not officially associated with or endorsed by the original maintainers.**  
+This repository is an independent Docker packaging of the upstream TapTap‑MQTT project and is not officially associated with or endorsed by the original maintainers. 
 It simply provides a clean, Docker‑first distribution for people running:
 
 - Home Assistant **Core in Docker**
@@ -28,7 +29,7 @@ Huge thanks to the upstream authors — none of this would exist without their w
 
 ---
 
-# 🧰 Installation Prerequisites (Summary)
+# Installation Prerequisites (Summary)
 
 Before running this container, you need:
 
@@ -67,7 +68,7 @@ Typical settings:
 
 ---
 
-# 📝 Configure TapTap‑MQTT
+# Configure TapTap‑MQTT
 
 After the first container start, edit your config file:
 
@@ -121,7 +122,7 @@ LOG_LEVEL = warning
 
 ---
 
-# 🚀 Quick Start (Docker Run)
+# Quick Start (Docker Run)
 
 Create persistent folders:
 
@@ -143,7 +144,7 @@ docker run -d --name taptap-mqtt \
 
 ---
 
-# 🧩 Using docker‑compose
+# Using docker‑compose
 
 A `docker-compose.yml` file is included in this repository.
 
@@ -168,7 +169,7 @@ docker compose up -d
 
 ---
 
-# 🟧 Running on Unraid (GUI Method)
+# Running on Unraid (GUI Method)
 
 Unraid **does not automatically create folders** for volume mappings.  
 Create them manually:
@@ -191,7 +192,7 @@ Click **Apply**.
 
 ---
 
-# 🟧 Running on Unraid (Template XML Method)
+# Running on Unraid (Template XML Method)
 
 Save the provided XML as:
 
@@ -207,7 +208,7 @@ Click **Apply**.
 
 ---
 
-# 📁 Folder Structure
+# Folder Structure
 
 ### Host (persistent)
 
@@ -233,7 +234,7 @@ Click **Apply**.
 
 ---
 
-# 🔍 How Config Discovery Works
+# How Config Discovery Works
 
 TapTap‑MQTT expects `config.ini` in `/app`.
 
@@ -245,7 +246,7 @@ To support host‑mounted config, the container creates:
 
 ---
 
-# 🏠 Viewing Tigo Module Data in Home Assistant
+# Viewing Tigo Module Data in Home Assistant
 
 Once the container is running correctly and your MQTT settings are valid, Home Assistant will automatically discover new MQTT entities for your Tigo modules.
 
