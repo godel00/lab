@@ -4,8 +4,8 @@
     {
       "fileMatch": ["^\\.github/workflows/ghcr-build\\.yml$"],
       "matchStrings": [
-        "# renovate: datasource=github-releases depName=(?<packageName>.*) packageName=(?<repo>.*) versioning=semver[\\s\\S]*?TAPTAP_VERSION: \"(?<currentValue>.*)\"",
-        "# renovate: datasource=github-releases depName=(?<packageName>.*) packageName=(?<repo>.*) versioning=semver[\\s\\S]*?TAPTAP_MQTT_VERSION: \"(?<currentValue>.*)\""
+        "# renovate: datasource=github-releases depName=(?<packageName>\\S+) packageName=(?<repo>\\S+) versioning=semver[\\s\\S]*?TAPTAP_VERSION:\\s*\"(?<currentValue>[^\"]+)\"",
+        "# renovate: datasource=github-releases depName=(?<packageName>\\S+) packageName=(?<repo>\\S+) versioning=semver[\\s\\S]*?TAPTAP_MQTT_VERSION:\\s*\"(?<currentValue>[^\"]+)\""
       ],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "{{packageName}}",
