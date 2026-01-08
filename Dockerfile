@@ -1,7 +1,7 @@
 # ============================
 # Stage 1 — Builder
 # ============================
-FROM python:3.12-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 LABEL org.opencontainers.image.title="TapTap-MQTT"
 LABEL org.opencontainers.image.description="Docker implementation of Tigo CCA Tap to MQTT bridge to get data from Tigo optimizers locally to Home Assistant."
@@ -120,7 +120,7 @@ RUN set -eux; \
 # ============================
 # Stage 2 — Runtime
 # ============================
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 RUN apk add --no-cache bash
 
